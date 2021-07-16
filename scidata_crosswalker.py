@@ -257,7 +257,6 @@ def scilinker(sci_input, sci_links):
                                         zbin_value = zbin_data_entry.get('value', {}).get('#', False)
                                         if zbin_value:
                                             reg_replace(find, zbin_value, zbin, k, sci_bin_loop)
-
     for inp in inputsets:
         if inp:
             for sci_bin in inp:

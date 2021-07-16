@@ -1,8 +1,18 @@
 from scidata_crosswalker import *
 from scidata import *
 import json
-import datetime
 
+"""Merged_dictionary is the discrete dataset in JSON format and should have a single root key.
+    Central_table is the name of the root key.
+    The crosswalks, namespaces, and ontterms variables were inspected from MySQL tables. 
+    In practice, these tables are accessed directly (for example using Django models).
+    The crosswalks, namespaces, and ontterms variables were truncated to only included 
+    those entries relevant to this sample dataset defined in merged_dictionary.
+    group_overrides (used by group_link_override) use regex to modify grouping within the document
+    sci_links (used by scilinker) use regex to create internal links within document.
+    Generate output without running scicleanup to view # key which is the target of the 
+    group_link_override and scilinker functions
+    """
 
 merged_dictionary = \
     {"compounds": {
@@ -38,6 +48,7 @@ merged_dictionary = \
 object_data_json = json.loads(json.dumps(merged_dictionary))
 
 central_table = 'compounds'
+
 crosswalks = [{'id': 16, 'table': 'compounds', 'field': 'dsstox_compound_id', 'ontterm_id': 323, 'sdsection': 'system', 'sdsubsection': 'compound', 'sdsubsubsection': 'identifier', 'category': None, 'unit': None, 'datatype': 'string'},
               {'id': 23, 'table': 'compounds', 'field': 'smiles', 'ontterm_id': 80, 'sdsection': 'system', 'sdsubsection': 'compound', 'sdsubsubsection': 'identifier', 'category': None, 'unit': None, 'datatype': 'string'},
               {'id': 47, 'table': 'qsar_predicted_properties', 'field': 'result_value', 'ontterm_id': 9999, 'sdsection': 'dataset', 'sdsubsection': 'exptdata', 'sdsubsubsection': None, 'category': None, 'unit': None, 'datatype': 'string'},
@@ -112,8 +123,11 @@ test.aspects(bins_grouped['methodology'])
 test.facets(bins_grouped['system'])
 test.datapoint(datasetmod)
 
+sourcecode = 'cross'
+datasetname = 'walk'
+unique_id = 'er'
+
 test.namespaces(nspaces)
-test.base("https://scidata.unf.edu/example/")
 test.discipline('w3i:Chemistry')
 test.subdiscipline('w3i:ChemicalInformatics')
 test.docid('1')
@@ -122,7 +136,9 @@ test.title('SciData Crosswalker')
 test.author(['Dylan Johnson'])
 test.description('Example of Crosswalker Functions')
 test.publisher('Chalk Lab')
-test.permalink("https://scidata.unf.edu/example/")
+test.base("https://scidata.unf.edu/" + sourcecode + ":" + datasetname + ":" + unique_id + "/")
+test.permalink("https://scidata.unf.edu/" + sourcecode + ":" + datasetname + ":" + unique_id + "/")
+test.graph_uid(sourcecode + ":" + datasetname + ":" + unique_id)
 
 scilinker(test.output, sci_links)
 
