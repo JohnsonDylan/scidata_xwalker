@@ -53,6 +53,7 @@ nspaceslist = [{'id': 2, 'name': 'OBO Foundry', 'ns': 'obo', 'path': 'http://pur
 
 
 """Define group overrides to modify organization
+    Generate SciData JSON-LD before running scicleanup to see # key and value to assist in writing group_overrides
     term 1 = < regex pattern to find in value # key >
     term 2 = < regex pattern to find in value of # for match >
     { term 1 : term 2 }
@@ -64,6 +65,7 @@ group_overrides.update({'(compounds;qsar_predicted_properties;)(\d{1,})(\/exptda
 group_overrides.update({'(compounds;qsar_predicted_properties;)(\d{1,})(\/suppdata)':'compounds;qsar_predicted_properties;$!@%/data'})
 
 """Define sci_links to create internal links between sections
+    Generate SciData JSON-LD before running scicleanup to see # key and value to assist in writing sci_links
     term 1 = < regex pattern to find in value # key >
     term 2 = < name of key to be added to identify relationship >
     term 3 = < regex pattern to find in value of # for match >
@@ -126,6 +128,6 @@ scilinker(test.output, sci_links)
 
 # print(json.dumps(test.output, ensure_ascii=False))
 
-scicleanup(test.output)
+# scicleanup(test.output)
 
 print(json.dumps(test.output, ensure_ascii=False))
