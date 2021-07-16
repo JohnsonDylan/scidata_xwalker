@@ -128,6 +128,6 @@ scilinker(test.output, sci_links)
 
 # print(json.dumps(test.output, ensure_ascii=False))
 
-# scicleanup(test.output)
+scicleanup(test.output)
 
 print(json.dumps(test.output, ensure_ascii=False))
