@@ -1,4 +1,4 @@
-from scidata_crosswalker import *
+from scidata_xwalker import *
 from scidata import *
 import json
 
