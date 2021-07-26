@@ -68,20 +68,23 @@ def cleanup_flattened(sci_input):
         if isinstance(v, str) and v is not None and v.startswith('{'):
             if re.search(r'(\d+)(?!.*\d)', k):
                 reg = re.split(r'(\d+)(?!.*\d)', k)
-                reg.pop()
+                scidata_key_path = reg.pop().split(';',1)[1]
                 sci_group = ''.join([str(elem) for elem in reg])
             else:
                 sci_group = k.rsplit(';', 1)[0]
-
-            if re.search(r'^(\D*\d)(.*)$', k):
-                reg = re.search(r'^(\D*\d)(.*)$', k)
-                sci_group_alt = reg.group(1)
+                scidata_key_path = k.rsplit(';', 1)[1]
+            valx = ast.literal_eval(v)
+            val = ({'scidata_dir': k,
+                    'scidata_key': k.rsplit(';', 1)[1],
+                    'scidata_key_path':scidata_key_path,
+                    'scidata_group': sci_group})
+            if valx['sdsection'] == 'dataset':
+                val.update({'scidata_group_link': k.rsplit(';', 1)[0] + '/'})
+                val.update({'scidata_group_link_original': k.rsplit(';', 1)[0] + '/'})
             else:
-                sci_group_alt = k.rsplit(';', 1)[0]
-            val = ({'scidata_dir': k, 'scidata_key': k.rsplit(';', 1)[1], 'scidata_group': sci_group,
-                    'scidata_group_alt': sci_group_alt})
-            val.update(ast.literal_eval(v))
-            val.update({'scidata_group_link': sci_group + '/' + str(val['sdsubsection'])})
+                val.update({'scidata_group_link': k.rsplit(';', 1)[0] + '/' + str(valx['sdsubsection'])})
+                val.update({'scidata_group_link_original': k.rsplit(';', 1)[0] + '/' + str(valx['sdsubsection'])})
+            val.update(valx)
             output.update({k: val})
     return output
 
@@ -90,6 +93,12 @@ def group_link_override(sci_input, group_overrides):
     """redefines the scidata_group_link value based on the rules defined in group_overrides"""
     for k, v in sci_input.items():
         for pattern, replacement in group_overrides.items():
+            if re.search(pattern, v['scidata_group_link']):
+                try:
+                    replace = replacement.replace('$!@%', re.match(pattern, v['scidata_group_link']).group(2))
+                    v['scidata_group_link'] = replace
+                except Exception:
+                    v['scidata_group_link'] = replacement
             if re.search(pattern, v['scidata_group_link']):
                 try:
                     replace = replacement.replace('$!@%', re.match(pattern, v['scidata_group_link']).group(2))
@@ -133,7 +142,7 @@ def bin_grouper(sci_input):
                     if c['sdsection'] == 'dataset':
                         if sdsubsection_group.get(c['scidata_key']):
                             if type(sdsubsection_group.get(c['scidata_key'])) is dict:
-                                sdsubsection_group[c['scidata_key']] = list(sdsubsection_group.get(c['scidata_key']))
+                                sdsubsection_group[c['scidata_key']] = [sdsubsection_group.get(c['scidata_key'])]
                             sdsubsection_group[c['scidata_key']].append(c)
                         else:
                             sdsubsection_group.update(
@@ -141,8 +150,7 @@ def bin_grouper(sci_input):
                     else:
                         if sdsubsection_group.get(c['scidata_key']):
                             if type(sdsubsection_group.get(c['scidata_key'])) is dict:
-                                makelist = [sdsubsection_group.get(c['scidata_key'])]
-                                sdsubsection_group[c['scidata_key']] = makelist
+                                sdsubsection_group[c['scidata_key']] = [sdsubsection_group.get(c['scidata_key'])]
                             sdsubsection_group[c['scidata_key']].append(c)
                         else:
                             sdsubsection_group.update(
@@ -161,6 +169,8 @@ def remove_extra_metadata(sci_input):
             if type(v) is dict:
                 entry[k] = v['scidata_value']
                 reference.update({'#': v['scidata_group_link']})
+                reference.update({'##': v['scidata_group_link_original']})
+
                 if dev:
                     reference.update({k + '#': v['scidata_group_link']})
                     reference.update({k + '##': v['scidata_dir']})
@@ -169,6 +179,7 @@ def remove_extra_metadata(sci_input):
                 for vlist in v:
                     entry[k].append(vlist['scidata_value'])
                     reference.update({'#': vlist['scidata_group_link']})
+                    reference.update({'##': vlist['scidata_group_link_original']})
                     if dev:
                         reference.update({k + '#': vlist['scidata_group_link']})
                         reference.update({k + '##': vlist['scidata_dir']})
@@ -196,7 +207,8 @@ def datasetmodder(sci_input):
                         value.update({"@id": "value",
                                       "@type": "sdo:value",
                                       v['scidata_key']: v['scidata_value'],
-                                      '#': v['scidata_group_link']
+                                      '#': v['scidata_group_link'].split('/')[0],
+                                      '##': v['scidata_group_link_original'].split('/')[0]
                                       })
             datum = ({
                 "@id": "datum",
@@ -278,15 +290,17 @@ def scicleanup(sci_input):
         sci_input['@graph']['scidata'].get('methodology', {}).get('aspects'),
         sci_input['@graph']['scidata'].get('system', {}).get('facets')
     ]
+    hashes = ['#', '##']
     for inp in inputsets:
         if inp:
             for sci_bin in inp:
-                y = sci_bin.get('#', False)
-                if y:
-                    sci_bin.pop('#')
-                bin_data = sci_bin.get('data', False)
-                if bin_data:
-                    for bin_data_entry in bin_data:
-                        bin_value = bin_data_entry.get('value', {}).get('#', False)
-                        if bin_value:
-                            bin_data_entry['value'].pop('#')
+                for hashe in hashes:
+                    y = sci_bin.get(hashe, False)
+                    if y:
+                        sci_bin.pop(hashe)
+                    bin_data = sci_bin.get('data', False)
+                    if bin_data:
+                        for bin_data_entry in bin_data:
+                            bin_value = bin_data_entry.get('value', {}).get(hashe, False)
+                            if bin_value:
+                                bin_data_entry['value'].pop(hashe)

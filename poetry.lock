@@ -1,0 +1,18 @@
+[[package]]
+name = "scidatalib"
+version = "0.2"
+description = "Python library for development of SciData JSON-LD files"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.7"
+content-hash = "fe06ce22cad21c5692f72352ea43beb556be85567ebe38badff1f330f925f01f"
+
+[metadata.files]
+scidatalib = [
+    {file = "SciDataLib-0.2-py3-none-any.whl", hash = "sha256:aed1097651b6e8f642dde0d8938b4c962ad0ea267809ab1d3aaf136073a22177"},
+    {file = "SciDataLib-0.2.tar.gz", hash = "sha256:0108be3de03036b9422fcd96fd1d35f6dbd67c8aa6f629fc269328cd178e26cf"},
+]
