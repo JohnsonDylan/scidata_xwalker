@@ -12,17 +12,21 @@ def crosswalker(sci_dir, sci_input, crosswalks, cw_field, cw_table):
     for x, y in sci_input.items():
         if type(y) in [str, int, float]:
             if cw_table:
-                match = next((cw for cw in crosswalks if cw[cw_field] == x and cw[cw_table] == sci_dir), None)
+                match = next(
+                    (cw for cw in crosswalks
+                     if cw[cw_field] == x and cw[cw_table] == sci_dir),
+                    None)
             else:
-                match = next((cw for cw in crosswalks if cw[cw_field] == x), None)
+                match = next(
+                    (cw for cw in crosswalks if cw[cw_field] == x), None)
             if match:
                 out = {"scidata_value": y}
                 out.update(match)
                 out.pop('updated', None)
                 sci_input[x] = str(out)
-        if type(y) == dict:
+        if isinstance(y, dict):
             crosswalker(x, y, crosswalks, cw_field, cw_table)
-        if type(y) == list:
+        if isinstance(y, list):
             for z in y:
                 crosswalker(x, z, crosswalks, cw_field, cw_table)
 
@@ -50,11 +54,22 @@ def flatten_json_iterative_solution(dictionary):
             # Keep iterating until the termination condition is satisfied
 
     while True:
-        # Keep unpacking the json file until all values are atomic elements (not dictionary or list)
-        dictionary = dict(chain.from_iterable(starmap(unpack, dictionary.items())))
-        # Terminate condition: not any value in the json file is dictionary or list
-        if not any(isinstance(value, dict) for value in dictionary.values()) and \
-                not any(isinstance(value, list) for value in dictionary.values()):
+        # Keep unpacking the json file until all values are atomic elements
+        # (not dictionary or list)
+        dictionary = dict(
+            chain.from_iterable(
+                starmap(
+                    unpack,
+                    dictionary.items())))
+        # Terminate condition: not any value in the json file is dictionary or
+        # list
+        if not any(
+            isinstance(
+                value,
+                dict) for value in dictionary.values()) and not any(
+            isinstance(
+                value,
+                list) for value in dictionary.values()):
             break
 
     return dictionary
@@ -68,7 +83,7 @@ def cleanup_flattened(sci_input):
         if isinstance(v, str) and v is not None and v.startswith('{'):
             if re.search(r'(\d+)(?!.*\d)', k):
                 reg = re.split(r'(\d+)(?!.*\d)', k)
-                scidata_key_path = reg.pop().split(';',1)[1]
+                scidata_key_path = reg.pop().split(';', 1)[1]
                 sci_group = ''.join([str(elem) for elem in reg])
             else:
                 sci_group = k.rsplit(';', 1)[0]
@@ -76,14 +91,18 @@ def cleanup_flattened(sci_input):
             valx = ast.literal_eval(v)
             val = ({'scidata_dir': k,
                     'scidata_key': k.rsplit(';', 1)[1],
-                    'scidata_key_path':scidata_key_path,
+                    'scidata_key_path': scidata_key_path,
                     'scidata_group': sci_group})
             if valx['sdsection'] == 'dataset':
-                val.update({'scidata_group_link': k.rsplit(';', 1)[0] + '/'})
-                val.update({'scidata_group_link_original': k.rsplit(';', 1)[0] + '/'})
+                val.update(
+                    {'scidata_group_link': k.rsplit(';', 1)[0] + '/'})
+                val.update(
+                    {'scidata_group_link_original': k.rsplit(';', 1)[0] + '/'})
             else:
-                val.update({'scidata_group_link': k.rsplit(';', 1)[0] + '/' + str(valx['sdsubsection'])})
-                val.update({'scidata_group_link_original': k.rsplit(';', 1)[0] + '/' + str(valx['sdsubsection'])})
+                val.update({'scidata_group_link': k.rsplit(';', 1)
+                           [0] + '/' + str(valx['sdsubsection'])})
+                val.update({'scidata_group_link_original': k.rsplit(
+                    ';', 1)[0] + '/' + str(valx['sdsubsection'])})
             val.update(valx)
             output.update({k: val})
     return output
@@ -95,13 +114,15 @@ def group_link_override(sci_input, group_overrides):
         for pattern, replacement in group_overrides.items():
             if re.search(pattern, v['scidata_group_link']):
                 try:
-                    replace = replacement.replace('$!@%', re.match(pattern, v['scidata_group_link']).group(2))
+                    replace = replacement.replace(
+                        '$!@%', re.match(pattern, v['scidata_group_link']).group(2))
                     v['scidata_group_link'] = replace
                 except Exception:
                     v['scidata_group_link'] = replacement
             if re.search(pattern, v['scidata_group_link']):
                 try:
-                    replace = replacement.replace('$!@%', re.match(pattern, v['scidata_group_link']).group(2))
+                    replace = replacement.replace(
+                        '$!@%', re.match(pattern, v['scidata_group_link']).group(2))
                     v['scidata_group_link'] = replace
                 except Exception:
                     v['scidata_group_link'] = replacement
@@ -113,8 +134,11 @@ def get_semantics(sci_input, onttermslist, nspaceslist):
     namespaces = {}
     for x in sci_input.values():
         ontoterms.append(x['ontterm_id'])
-        ontsearch = next(item for item in onttermslist if item["id"] == x['ontterm_id'])
-        nspacesearch = next(item for item in nspaceslist if item["id"] == ontsearch['nspace_id'])
+        ontsearch = next(
+            item for item in onttermslist if item["id"] == x['ontterm_id'])
+        nspacesearch = next(
+            item for item in nspaceslist
+            if item["id"] == ontsearch['nspace_id'])
         namespaces.update({nspacesearch['ns']: nspacesearch['path']})
     return namespaces
 
@@ -141,20 +165,29 @@ def bin_grouper(sci_input):
                 if c['scidata_group_link'] == d:
                     if c['sdsection'] == 'dataset':
                         if sdsubsection_group.get(c['scidata_key']):
-                            if type(sdsubsection_group.get(c['scidata_key'])) is dict:
-                                sdsubsection_group[c['scidata_key']] = [sdsubsection_group.get(c['scidata_key'])]
+                            if isinstance(
+                                    sdsubsection_group.get(
+                                        c['scidata_key']),
+                                    dict):
+                                sdsubsection_group[c['scidata_key']] = [
+                                    sdsubsection_group.get(c['scidata_key'])]
                             sdsubsection_group[c['scidata_key']].append(c)
                         else:
                             sdsubsection_group.update(
                                 {"@id": 'datum', c['scidata_key']: c})
                     else:
                         if sdsubsection_group.get(c['scidata_key']):
-                            if type(sdsubsection_group.get(c['scidata_key'])) is dict:
-                                sdsubsection_group[c['scidata_key']] = [sdsubsection_group.get(c['scidata_key'])]
+                            if isinstance(
+                                    sdsubsection_group.get(
+                                        c['scidata_key']),
+                                    dict):
+                                sdsubsection_group[c['scidata_key']] = [
+                                    sdsubsection_group.get(c['scidata_key'])]
                             sdsubsection_group[c['scidata_key']].append(c)
                         else:
                             sdsubsection_group.update(
-                                {"@id": c['sdsubsection'], c['scidata_key']: c})
+                                {"@id": c['sdsubsection'],
+                                 c['scidata_key']: c})
             subset_list.append(sdsubsection_group)
         if subset_list:
             bins_grouped.update({a: subset_list})
@@ -166,7 +199,7 @@ def remove_extra_metadata(sci_input):
     for entry in sci_input:
         reference = {}
         for k, v in entry.items():
-            if type(v) is dict:
+            if isinstance(v, dict):
                 entry[k] = v['scidata_value']
                 reference.update({'#': v['scidata_group_link']})
                 reference.update({'##': v['scidata_group_link_original']})
@@ -174,14 +207,16 @@ def remove_extra_metadata(sci_input):
                 if dev:
                     reference.update({k + '#': v['scidata_group_link']})
                     reference.update({k + '##': v['scidata_dir']})
-            if type(v) is list:
+            if isinstance(v, list):
                 entry[k] = []
                 for vlist in v:
                     entry[k].append(vlist['scidata_value'])
                     reference.update({'#': vlist['scidata_group_link']})
-                    reference.update({'##': vlist['scidata_group_link_original']})
+                    reference.update(
+                        {'##': vlist['scidata_group_link_original']})
                     if dev:
-                        reference.update({k + '#': vlist['scidata_group_link']})
+                        reference.update(
+                            {k + '#': vlist['scidata_group_link']})
                         reference.update({k + '##': vlist['scidata_dir']})
                 entry[k] = set(entry[k])
                 entry[k] = list(entry[k])
@@ -204,12 +239,12 @@ def datasetmodder(sci_input):
             for k, v in x.items():
                 if k != '@id':
                     if v['sdsubsection'] == sdsub:
-                        value.update({"@id": "value",
-                                      "@type": "sdo:value",
-                                      v['scidata_key']: v['scidata_value'],
-                                      '#': v['scidata_group_link'].split('/')[0],
-                                      '##': v['scidata_group_link_original'].split('/')[0]
-                                      })
+                        value.update(
+                            {"@id": "value", "@type": "sdo:value",
+                             v['scidata_key']: v['scidata_value'],
+                             '#': v['scidata_group_link'].split('/')[0],
+                             '##': v['scidata_group_link_original'].split('/')
+                             [0]})
             datum = ({
                 "@id": "datum",
                 "@type": "sdo:" + sdsub,
@@ -234,7 +269,7 @@ def scilinker(sci_input, sci_links):
     def reg_replace(find, zin, zbin, k, sci_bin_reg):
         if re.search(find, zin):
             if sci_bin_reg.get(k):
-                if type(sci_bin_reg.get(k)) == list:
+                if isinstance(sci_bin_reg.get(k), list):
                     sci_bin_reg[k].append(zbin['@id'])
                     sci_bin_reg[k] = list(set(sci_bin_reg[k]))
                 else:
@@ -262,13 +297,16 @@ def scilinker(sci_input, sci_links):
                             for zbin in inp_loop:
                                 zy = zbin.get('#', False)
                                 if zy:
-                                    reg_replace(find, zy, zbin, k, sci_bin_loop)
+                                    reg_replace(
+                                        find, zy, zbin, k, sci_bin_loop)
                                 zbin_data = zbin.get('data', False)
                                 if zbin_data:
                                     for zbin_data_entry in zbin_data:
-                                        zbin_value = zbin_data_entry.get('value', {}).get('#', False)
+                                        zbin_value = zbin_data_entry.get(
+                                            'value', {}).get('#', False)
                                         if zbin_value:
-                                            reg_replace(find, zbin_value, zbin, k, sci_bin_loop)
+                                            reg_replace(
+                                                find, zbin_value, zbin, k, sci_bin_loop)
     for inp in inputsets:
         if inp:
             for sci_bin in inp:
@@ -278,7 +316,8 @@ def scilinker(sci_input, sci_links):
                 bin_data = sci_bin.get('data', False)
                 if bin_data:
                     for bin_data_entry in bin_data:
-                        bin_value = bin_data_entry.get('value', {}).get('#', False)
+                        bin_value = bin_data_entry.get(
+                            'value', {}).get('#', False)
                         if bin_value:
                             scilinkerloop(bin_value, sci_links, sci_bin)
 
@@ -301,6 +340,7 @@ def scicleanup(sci_input):
                     bin_data = sci_bin.get('data', False)
                     if bin_data:
                         for bin_data_entry in bin_data:
-                            bin_value = bin_data_entry.get('value', {}).get(hashe, False)
+                            bin_value = bin_data_entry.get(
+                                'value', {}).get(hashe, False)
                             if bin_value:
                                 bin_data_entry['value'].pop(hashe)
