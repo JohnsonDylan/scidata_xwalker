@@ -1,18 +1,29 @@
-from scidata_xwalker.scidata_xwalker import *
-from scidata import *
+from scidata_xwalker.scidata_xwalker import \
+    flatten_json_iterative_solution,\
+    scicleanup,\
+    datasetmodder,\
+    remove_extra_metadata,\
+    cleanup_flattened,\
+    get_semantics,\
+    crosswalker, \
+    group_link_override, \
+    scilinker, \
+    bin_grouper, \
+    binner
+from scidata import SciData
 import json
 
-"""Merged_dictionary is the discrete dataset in JSON format and should have a single root key.
-    Central_table is the name of the root key.
-    The crosswalks, namespaces, and ontterms variables were inspected from MySQL tables.
-    In practice, these tables are accessed directly (for example using Django models).
-    The crosswalks, namespaces, and ontterms variables were truncated to only included
-    those entries relevant to this sample dataset defined in merged_dictionary.
-    group_overrides (used by group_link_override) use regex to modify grouping within the document
-    sci_links (used by scilinker) use regex to create internal links within document.
-    Generate output without running scicleanup to view # key which is the target of the
-    group_link_override and scilinker functions
-    """
+"""Merged_dictionary is the discrete dataset in JSON format and should have
+a single root key. Central_table is the name of the root key. The
+crosswalks, namespaces, and ontterms variables were inspected from MySQL
+tables. In practice, these tables are accessed directly (for example using
+Django models). The crosswalks, namespaces, and ontterms variables were
+truncated to only included those entries relevant to this sample dataset
+defined in merged_dictionary. group_overrides (used by group_link_override)
+use regex to modify grouping within the document sci_links (used by
+scilinker) use regex to create internal links within document. Generate
+output without running scicleanup to view # key which is the target of the
+group_link_override and scilinker functions """
 
 merged_dictionary = \
     {"compounds": {
@@ -102,7 +113,10 @@ crosswalks = [{'id': 16,
 
 onttermslist = [{'id': 323,
                  'title': 'Identifier',
-                 'definition': 'One or more characters used to identify, name, or characterize the nature, properties, or contents of a thing. [def-source: NCI]',
+                 'definition': 'One or more characters used to identify, '
+                               'name, or characterize the nature, '
+                               'properties, or contents of a thing. ['
+                               'def-source: NCI]',
                  'code': 'NCIT_C25364',
                  'url': 'obo:NCIT_C25364',
                  'nspace_id': 2,
@@ -110,7 +124,9 @@ onttermslist = [{'id': 323,
                  'sdsubsection': 'identifier'},
                 {'id': 80,
                  'title': 'SMILES string',
-                 'definition': 'SMILES string corresponding to drug structure [database_cross_reference: PMID:14755292]',
+                 'definition': 'SMILES string corresponding to drug '
+                               'structure [database_cross_reference: '
+                               'PMID:14755292]',
                  'code': 'MI:2039',
                  'url': 'obo:MI_2039',
                  'nspace_id': 2,
@@ -134,14 +150,13 @@ nspaceslist = [
      'homepage': 'https://stuchalk.github.io/scidata/'}]
 
 
-"""Define group overrides to modify organization
-    Generate SciData JSON-LD before running scicleanup to see # key and value to assist in writing group_overrides
-    term 1 = < regex pattern to find in value # key >
-    term 2 = < regex pattern to find in value of # for match >
-    { term 1 : term 2 }
-    If term 1 depends on enumeration use parentheses to create regex groups. Group 2 should be the enumerated value ie. (\\d{1,})
-    If term 2 match depends on the enumeration, use '$!@%' in the position of enumeration
-    """
+"""Define group overrides to modify organization Generate SciData JSON-LD
+before running scicleanup to see # key and value to assist in writing
+group_overrides term 1 = < regex pattern to find in value # key > term 2 = <
+regex pattern to find in value of # for match > { term 1 : term 2 } If term
+1 depends on enumeration use parentheses to create regex groups. Group 2
+should be the enumerated value ie. (\\d{1,}) If term 2 match depends on the
+enumeration, use '$!@%' in the position of enumeration """
 group_overrides = {}
 group_overrides.update({
     '(compounds;qsar_predicted_properties;)(\\d{1,})(\\/exptdata)':
@@ -150,16 +165,15 @@ group_overrides.update({
     '(compounds;qsar_predicted_properties;)(\\d{1,})(\\/suppdata)':
     'compounds;qsar_predicted_properties;$!@%/data'})
 
-"""Define sci_links to create internal links between sections
-    Generate SciData JSON-LD before running scicleanup to see # key and value to assist in writing sci_links
-    term 1 = < regex pattern to find in value # key >
-    term 2 = < name of key to be added to identify relationship >
-    term 3 = < regex pattern to find in value of # for match >
-    { term 1 : { term 2 : term 3 } }
-    If term 1 depends on enumeration use parentheses to create regex groups. Group 2 should be the enumerated value ie. (\\d{1,})
-    If term 3 match depends on the enumeration, use '$!@%' in the position of enumeration
-    Multiple key/value pairs can be included in term 3 if needed
-    """
+"""Define sci_links to create internal links between sections Generate
+SciData JSON-LD before running scicleanup to see # key and value to assist
+in writing sci_links term 1 = < regex pattern to find in value # key > term
+2 = < name of key to be added to identify relationship > term 3 = < regex
+pattern to find in value of # for match > { term 1 : { term 2 : term 3 } }
+If term 1 depends on enumeration use parentheses to create regex groups.
+Group 2 should be the enumerated value ie. (\\d{1,}) If term 3 match depends
+on the enumeration, use '$!@%' in the position of enumeration Multiple
+key/value pairs can be included in term 3 if needed """
 sci_links = {}
 sci_links.update({'(compounds;qsar_predicted_properties;)(\\d{1,})(\\/data)': {
     'model': 'compounds;qsar_predicted_properties;$!@%/model',

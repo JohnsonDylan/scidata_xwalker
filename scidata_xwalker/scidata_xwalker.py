@@ -109,27 +109,31 @@ def cleanup_flattened(sci_input):
 
 
 def group_link_override(sci_input, group_overrides):
-    """redefines the scidata_group_link value based on the rules defined in group_overrides"""
+    """redefines the scidata_group_link value based on the rules defined in
+    group_overrides """
     for k, v in sci_input.items():
         for pattern, replacement in group_overrides.items():
             if re.search(pattern, v['scidata_group_link']):
                 try:
                     replace = replacement.replace(
-                        '$!@%', re.match(pattern, v['scidata_group_link']).group(2))
+                        '$!@%', re.match(pattern,
+                                         v['scidata_group_link']).group(2))
                     v['scidata_group_link'] = replace
                 except Exception:
                     v['scidata_group_link'] = replacement
             if re.search(pattern, v['scidata_group_link']):
                 try:
                     replace = replacement.replace(
-                        '$!@%', re.match(pattern, v['scidata_group_link']).group(2))
+                        '$!@%', re.match(pattern,
+                                         v['scidata_group_link']).group(2))
                     v['scidata_group_link'] = replace
                 except Exception:
                     v['scidata_group_link'] = replacement
 
 
 def get_semantics(sci_input, onttermslist, nspaceslist):
-    """Scans object_data_json_flat_filtered to create list of all ontterms present"""
+    """Scans object_data_json_flat_filtered to create list of all ontterms
+    present """
     ontoterms = []
     namespaces = {}
     for x in sci_input.values():
@@ -195,7 +199,8 @@ def bin_grouper(sci_input):
 
 
 def remove_extra_metadata(sci_input):
-    """The dictionary containing the value and metadata is replaced with only the value (scidata_value)"""
+    """The dictionary containing the value and metadata is replaced with
+    only the value (scidata_value) """
     for entry in sci_input:
         reference = {}
         for k, v in entry.items():
@@ -306,7 +311,8 @@ def scilinker(sci_input, sci_links):
                                             'value', {}).get('#', False)
                                         if zbin_value:
                                             reg_replace(
-                                                find, zbin_value, zbin, k, sci_bin_loop)
+                                                find, zbin_value,
+                                                zbin, k, sci_bin_loop)
     for inp in inputsets:
         if inp:
             for sci_bin in inp:
