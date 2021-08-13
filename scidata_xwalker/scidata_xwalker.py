@@ -244,109 +244,24 @@ def datasetmodder(sci_input):
             for k, v in x.items():
                 if k != '@id':
                     if v['sdsubsection'] == sdsub:
-                        value.update(
-                            {"@id": "value", "@type": "sdo:value",
-                             v['scidata_key']: v['scidata_value'],
-                             '#': v['scidata_group_link'].split('/')[0],
-                             '##': v['scidata_group_link_original'].split('/')
-                             [0]})
+                        value.update({"@id": "value",
+                                      "@type": "sdo:value",
+                                      v['scidata_key']: v['scidata_value'],
+                                      # '#': v['scidata_group_link'].split('/')[0],
+                                      # '##': v['scidata_group_link_original'].split('/')[0]
+                                      })
             datum = ({
                 "@id": "datum",
                 "@type": "sdo:" + sdsub,
                 "value": value})
             datumset.append(datum)
+
         dataset = {
             "@id": "datapoint",
             "@type": "sdo:datapoint",
-            "data": datumset}
+            "data": datumset,
+            '#': v['scidata_group_link'].split('/')[0],
+            '##': v['scidata_group_link_original'].split('/')[0]
+        }
         datasetmod.append(dataset)
     return datasetmod
-
-
-def scilinker(sci_input, sci_links):
-    """Links datapoint to corresponding aspect(s) and facet(s)"""
-    inputsets = [
-        sci_input['@graph']['scidata'].get('dataset', {}).get('datapoint'),
-        sci_input['@graph']['scidata'].get('methodology', {}).get('aspects'),
-        sci_input['@graph']['scidata'].get('system', {}).get('facets')
-    ]
-
-    def reg_replace(find, zin, zbin, k, sci_bin_reg):
-        if re.search(find, zin):
-            if sci_bin_reg.get(k):
-                if isinstance(sci_bin_reg.get(k), list):
-                    sci_bin_reg[k].append(zbin['@id'])
-                    sci_bin_reg[k] = list(set(sci_bin_reg[k]))
-                else:
-                    makelist = [sci_bin_reg.get(k)]
-                    sci_bin_reg[k] = makelist
-                    sci_bin_reg[k].append(zbin['@id'])
-                    sci_bin_reg[k] = list(set(sci_bin_reg[k]))
-                    if len(sci_bin_reg[k]) == 1:
-                        sci_bin_reg[k] = zbin['@id']
-            else:
-                sci_bin_reg[k] = zbin['@id']
-
-    def scilinkerloop(newput, sciloop_links, sci_bin_loop):
-        """Iterative solution for scilinker"""
-        for sci_from, sci_to in sciloop_links.items():
-            if re.search(sci_from, newput):
-                for k, v in sci_to.items():
-                    try:
-                        linkval = re.match(sci_from, newput).group(2)
-                        find = v.replace('$!@%', linkval)
-                    except Exception:
-                        find = v
-                    for inp_loop in inputsets:
-                        if inp_loop:
-                            for zbin in inp_loop:
-                                zy = zbin.get('#', False)
-                                if zy:
-                                    reg_replace(
-                                        find, zy, zbin, k, sci_bin_loop)
-                                zbin_data = zbin.get('data', False)
-                                if zbin_data:
-                                    for zbin_data_entry in zbin_data:
-                                        zbin_value = zbin_data_entry.get(
-                                            'value', {}).get('#', False)
-                                        if zbin_value:
-                                            reg_replace(
-                                                find, zbin_value,
-                                                zbin, k, sci_bin_loop)
-    for inp in inputsets:
-        if inp:
-            for sci_bin in inp:
-                y = sci_bin.get('#', False)
-                if y:
-                    scilinkerloop(y, sci_links, sci_bin)
-                bin_data = sci_bin.get('data', False)
-                if bin_data:
-                    for bin_data_entry in bin_data:
-                        bin_value = bin_data_entry.get(
-                            'value', {}).get('#', False)
-                        if bin_value:
-                            scilinkerloop(bin_value, sci_links, sci_bin)
-
-
-def scicleanup(sci_input):
-    """Links datapoint to corresponding aspect(s) and facet(s)"""
-    inputsets = [
-        sci_input['@graph']['scidata'].get('dataset', {}).get('datapoint'),
-        sci_input['@graph']['scidata'].get('methodology', {}).get('aspects'),
-        sci_input['@graph']['scidata'].get('system', {}).get('facets')
-    ]
-    hashes = ['#', '##']
-    for inp in inputsets:
-        if inp:
-            for sci_bin in inp:
-                for hashe in hashes:
-                    y = sci_bin.get(hashe, False)
-                    if y:
-                        sci_bin.pop(hashe)
-                    bin_data = sci_bin.get('data', False)
-                    if bin_data:
-                        for bin_data_entry in bin_data:
-                            bin_value = bin_data_entry.get(
-                                'value', {}).get(hashe, False)
-                            if bin_value:
-                                bin_data_entry['value'].pop(hashe)

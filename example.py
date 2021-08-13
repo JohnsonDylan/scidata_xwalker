@@ -1,13 +1,11 @@
 from scidata_xwalker.scidata_xwalker import \
     flatten_json_iterative_solution,\
-    scicleanup,\
     datasetmodder,\
     remove_extra_metadata,\
     cleanup_flattened,\
     get_semantics,\
     crosswalker, \
     group_link_override, \
-    scilinker, \
     bin_grouper, \
     binner
 from scidata import SciData
@@ -156,7 +154,8 @@ group_overrides term 1 = < regex pattern to find in value # key > term 2 = <
 regex pattern to find in value of # for match > { term 1 : term 2 } If term
 1 depends on enumeration use parentheses to create regex groups. Group 2
 should be the enumerated value ie. (\\d{1,}) If term 2 match depends on the
-enumeration, use '$!@%' in the position of enumeration """
+enumeration, use '$!@%' in the position of enumeration
+ ## indicates group_link before override"""
 group_overrides = {}
 group_overrides.update({
     '(compounds;qsar_predicted_properties;)(\\d{1,})(\\/exptdata)':
@@ -165,20 +164,29 @@ group_overrides.update({
     '(compounds;qsar_predicted_properties;)(\\d{1,})(\\/suppdata)':
     'compounds;qsar_predicted_properties;$!@%/data'})
 
-"""Define sci_links to create internal links between sections Generate
+"""Define sci_links to create internal links between sections 
+Generate
 SciData JSON-LD before running scicleanup to see # key and value to assist
-in writing sci_links term 1 = < regex pattern to find in value # key > term
-2 = < name of key to be added to identify relationship > term 3 = < regex
-pattern to find in value of # for match > { term 1 : { term 2 : term 3 } }
+in writing sci_links 
+term 1 = regex pattern to find in value # key 
+term 2 = name of key to be added to identify relationship 
+term 3 = regex pattern to find in value of # for match 
+{ term 1 : { term 2 : term 3 } }
 If term 1 depends on enumeration use parentheses to create regex groups.
 Group 2 should be the enumerated value ie. (\\d{1,}) If term 3 match depends
-on the enumeration, use '$!@%' in the position of enumeration Multiple
-key/value pairs can be included in term 3 if needed """
+on the enumeration, use '$!@%' in the position of enumeration 
+Multiple key/value pairs can be included in terms 2 and 3 if needed """
 sci_links = {}
 sci_links.update({'(compounds;qsar_predicted_properties;)(\\d{1,})(\\/data)': {
     'model': 'compounds;qsar_predicted_properties;$!@%/model',
     'compound': 'compounds/compound'
 }})
+
+
+"""Define sci_groups"""
+sci_groups = {}
+sci_groups.update({"crystal": "crystal/$!@%/"})
+
 
 uid = '596'
 
@@ -246,10 +254,10 @@ test.permalink(
     "/")
 test.graph_uid(sourcecode + ":" + datasetname + ":" + unique_id)
 
-scilinker(test.output, sci_links)
+test.scilinker(sci_links)
 
-# print(json.dumps(test.output, ensure_ascii=False))
+test.datagroup(sci_groups)
 
-scicleanup(test.output)
+test.scicleanup()
 
-print(json.dumps(test.output, ensure_ascii=False))
+print(json.dumps(test.output, indent=4, ensure_ascii=False))

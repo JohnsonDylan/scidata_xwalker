@@ -1,6 +1,6 @@
 """Python library for writing SciData JSON-LD files"""
 from datetime import datetime
-
+import re
 
 class SciData:
     """
@@ -543,70 +543,70 @@ class SciData:
         self.meta['@graph']['scidata'] = scidata
         return curr_series
 
-    def datagroup(self, groups: list) -> list:
-        """Add one or more datagroups"""
-        cnt_index = {}
-
-        def iteratedatagroup(it, level):
-            """ iteratedatagroup function """
-            if isinstance(it, str):
-                self.__addid(it)
-                return it
-            elif '@id' in it:
-                category = it['@id']
-            else:
-                category = 'undefined'
-            if category in cnt_index:
-                cnt_index[category] += 1
-            else:
-                cnt_index[category] = 1
-            cat_index.update({level: category})
-            uid = ''
-            for cat in cat_index.values():
-                uid += cat + '/' + str(cnt_index[cat]) + '/'
-            temp: dict = {'@id': uid, '@type': 'sdo:' + category}
-            if 'source' in it:
-                temp.update({'source': it['source']})
-
-            dset = self.meta['@graph']['scidata']['dataset']
-            pointlist = []
-            if 'datapoints' in it:
-                for x in it['datapoints']:
-                    if 'datapoint' in dset:
-                        cnt = len(dset['datapoint'])
-                    else:
-                        cnt = 0
-                    pointlist.append('datapoint/' + str(cnt) + '/')
-                    self.datapoint([x])
-                temp['datapoints'] = pointlist
-            if 'attribute' in it:
-                for x in it['attribute']:
-                    if 'attribute' in dset:
-                        cnt = len(dset['attribute'])
-                    else:
-                        cnt = 0
-                    pointlist.append('attribute/' + str(cnt) + '/')
-                    self.attribute([x])
-                temp['attribute'] = pointlist
-
-            return temp
-
-        scidata: dict = self.meta['@graph']['scidata']
-        dataset: dict = scidata['dataset']
-        if 'datagroup' in dataset.keys():
-            curr_groups: list = dataset['datagroup']
-        else:
-            curr_groups = []
-
-        for item in groups:
-            cat_index = {}
-            item = iteratedatagroup(item, 0)
-            curr_groups.append(item)
-
-        dataset['datagroup'] = curr_groups
-        scidata['dataset'] = dataset
-        self.meta['@graph']['scidata'] = scidata
-        return curr_groups
+    # def datagroup(self, groups: list) -> list:
+    #     """Add one or more datagroups"""
+    #     cnt_index = {}
+    #
+    #     def iteratedatagroup(it, level):
+    #         """ iteratedatagroup function """
+    #         if isinstance(it, str):
+    #             self.__addid(it)
+    #             return it
+    #         elif '@id' in it:
+    #             category = it['@id']
+    #         else:
+    #             category = 'undefined'
+    #         if category in cnt_index:
+    #             cnt_index[category] += 1
+    #         else:
+    #             cnt_index[category] = 1
+    #         cat_index.update({level: category})
+    #         uid = ''
+    #         for cat in cat_index.values():
+    #             uid += cat + '/' + str(cnt_index[cat]) + '/'
+    #         temp: dict = {'@id': uid, '@type': 'sdo:' + category}
+    #         if 'source' in it:
+    #             temp.update({'source': it['source']})
+    #
+    #         dset = self.meta['@graph']['scidata']['dataset']
+    #         pointlist = []
+    #         if 'datapoints' in it:
+    #             for x in it['datapoints']:
+    #                 if 'datapoint' in dset:
+    #                     cnt = len(dset['datapoint'])
+    #                 else:
+    #                     cnt = 0
+    #                 pointlist.append('datapoint/' + str(cnt) + '/')
+    #                 self.datapoint([x])
+    #             temp['datapoints'] = pointlist
+    #         if 'attribute' in it:
+    #             for x in it['attribute']:
+    #                 if 'attribute' in dset:
+    #                     cnt = len(dset['attribute'])
+    #                 else:
+    #                     cnt = 0
+    #                 pointlist.append('attribute/' + str(cnt) + '/')
+    #                 self.attribute([x])
+    #             temp['attribute'] = pointlist
+    #
+    #         return temp
+    #
+    #     scidata: dict = self.meta['@graph']['scidata']
+    #     dataset: dict = scidata['dataset']
+    #     if 'datagroup' in dataset.keys():
+    #         curr_groups: list = dataset['datagroup']
+    #     else:
+    #         curr_groups = []
+    #
+    #     for item in groups:
+    #         cat_index = {}
+    #         item = iteratedatagroup(item, 0)
+    #         curr_groups.append(item)
+    #
+    #     dataset['datagroup'] = curr_groups
+    #     scidata['dataset'] = dataset
+    #     self.meta['@graph']['scidata'] = scidata
+    #     return curr_groups
 
     def sources(self, sources: list, replace=False) -> dict:
         """
@@ -807,6 +807,135 @@ class SciData:
         new_cat_index.pop(level)
         cnt_index[category] = 0
         return temp, category, count, new_cat_index
+
+    def scilinker(self, sci_links):
+        """Creates internal links between dataset(s), aspect(s) and facet(s)"""
+        inputsets = [
+            self.meta['@graph']['scidata'].get('dataset', {}).get('datapoint'),
+            self.meta['@graph']['scidata'].get('methodology', {}).get(
+                'aspects'),
+            self.meta['@graph']['scidata'].get('system', {}).get('facets')
+        ]
+
+        def reg_replace(find, zin, zbin, k, sci_bin_reg):
+            if re.search(find, zin):
+                if sci_bin_reg.get(k):
+                    if isinstance(sci_bin_reg.get(k), list):
+                        sci_bin_reg[k].append(zbin['@id'])
+                        sci_bin_reg[k] = list(set(sci_bin_reg[k]))
+                    else:
+                        makelist = [sci_bin_reg.get(k)]
+                        sci_bin_reg[k] = makelist
+                        sci_bin_reg[k].append(zbin['@id'])
+                        sci_bin_reg[k] = list(set(sci_bin_reg[k]))
+                        if len(sci_bin_reg[k]) == 1:
+                            sci_bin_reg[k] = zbin['@id']
+                else:
+                    sci_bin_reg[k] = zbin['@id']
+
+        def scilinkerloop(newput, sciloop_links, sci_bin_loop):
+            """Iterative solution for scilinker"""
+            for sci_from, sci_to in sciloop_links.items():
+                if re.search(sci_from, newput):
+                    for k, v in sci_to.items():
+                        try:
+                            linkval = re.match(sci_from, newput).group(2)
+                            find = v.replace('$!@%', linkval)
+                        except Exception:
+                            find = v
+                        for inp_loop in inputsets:
+                            if inp_loop:
+                                for zbin in inp_loop:
+                                    zy = zbin.get('#', False)
+                                    if zy:
+                                        reg_replace(
+                                            find, zy, zbin, k, sci_bin_loop)
+                                    zbin_data = zbin.get('data', False)
+                                    if zbin_data:
+                                        for zbin_data_entry in zbin_data:
+                                            zbin_value = zbin_data_entry.get(
+                                                'value', {}).get('#', False)
+                                            if zbin_value:
+                                                reg_replace(
+                                                    find, zbin_value,
+                                                    zbin, k, sci_bin_loop)
+
+        for inp in inputsets:
+            if inp:
+                for sci_bin in inp:
+                    y = sci_bin.get('#', False)
+                    if y:
+                        scilinkerloop(y, sci_links, sci_bin)
+                    bin_data = sci_bin.get('data', False)
+                    if bin_data:
+                        for bin_data_entry in bin_data:
+                            bin_value = bin_data_entry.get(
+                                'value', {}).get('#', False)
+                            if bin_value:
+                                scilinkerloop(bin_value, sci_links, sci_bin)
+
+    def datagroup(self, sci_groups):
+        """Groups datapoints based on shared internal links"""
+
+        scidata: dict = self.meta['@graph']['scidata']
+        dataset: dict = scidata['dataset']
+        inp = self.meta['@graph']['scidata'].get('dataset', {}).get(
+            'datapoint', False)
+        datagroups = []
+        group_num = 1
+        if inp:
+            for groupk, groupv in sci_groups.items():
+                groupcount = 1
+                while groupcount:
+                    group_datapoints = []
+                    groupvr = groupv.replace('$!@%', str(groupcount))
+                    for sci_bin in inp:
+                        match = False
+                        y = sci_bin.get(groupk, False)
+                        if y:
+                            if sci_bin[groupk] == groupvr:
+                                group_datapoints.append(sci_bin['@id'])
+                            sci_bin.pop(groupk)
+                    if group_datapoints:
+                        datagroup = {
+                            "@id": "datagroup/" + str(group_num) + "/",
+                            "@type": "sdo:datagroup",
+                            groupk: groupvr,
+                            'datapoints': group_datapoints}
+                        datagroups.append(datagroup)
+                        group_num += 1
+                    else:
+                        groupcount = False
+        # return datagroups
+        dataset['datagroup'] = datagroups
+        dataset['datapoint'] = dataset.pop('datapoint')
+        scidata['dataset'] = dataset
+        self.meta['@graph']['scidata'] = scidata
+
+    def scicleanup(self):
+        """Removes special keys (#, ##) leftover from scidata_xwalker"""
+        inputsets = [
+            self.meta['@graph']['scidata'].get('dataset', {}).get('datapoint'),
+            self.meta['@graph']['scidata'].get('methodology', {}).get(
+                'aspects'),
+            self.meta['@graph']['scidata'].get('system', {}).get('facets')
+        ]
+        hashes = ['#', '##']
+        for inp in inputsets:
+            if inp:
+                for sci_bin in inp:
+                    for hashe in hashes:
+                        y = sci_bin.get(hashe, False)
+                        if y:
+                            sci_bin.pop(hashe)
+                        bin_data = sci_bin.get('data', False)
+                        if bin_data:
+                            for bin_data_entry in bin_data:
+                                bin_value = bin_data_entry.get(
+                                    'value', {}).get(hashe, False)
+                                if bin_value:
+                                    bin_data_entry['value'].pop(hashe)
+
 
     @property
     def output(self) -> dict:
