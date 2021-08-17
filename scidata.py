@@ -188,7 +188,6 @@ class SciData:
         Add to or replace the list of authors within the @graph authors section
         :param authors - list of names, or list of dicts with multiple fields
         :param replace - boolean to replace or not the existing data
-
         Add the list of authors of a set of data with the following defined
         fields in the SciData context file: name, address, organization,
         email, orcid. Expects either:
@@ -207,10 +206,10 @@ class SciData:
             for au in authors:
                 auth = {'@id': ('author/' + str(len(a) + 1) + '/')}
                 auth.update({'@type': 'dc:creator'})
-                if type(au) is dict:
+                if isinstance(au, dict):
                     if 'name' in au:
                         auth.update(au)
-                elif type(au) is str:
+                elif isinstance(au, str):
                     auth.update({'name': au})
                 a.append(auth)
             self.meta['@graph']['authors'] = a
@@ -416,38 +415,29 @@ class SciData:
 
     def aspects(self, aspects: list) -> list:
         """Add to or replace the aspects of the file"""
-        cnt_index = {}
 
         scidata: dict = self.meta['@graph']['scidata']
         meth: dict = scidata['methodology']
         curr_aspects: list = meth['aspects']
-
-        for item in aspects:
-            cat_index = {}
-            item, category, count, cat_index = self.__iterate_function(
-                item, 1, cnt_index, cat_index)
-            cnt_index[category] = count
+        uidindex = []
+        for listentry in aspects:
+            item, uidindex = self.__iterate_function(listentry, uidindex)
             curr_aspects.append(item)
 
         meth['aspects'] = curr_aspects
-
         scidata['methodology'] = meth
         self.meta['@graph']['scidata'] = scidata
         return curr_aspects
 
     def facets(self, facets: list) -> list:
         """Add to or replace the facets of the file"""
-        cnt_index = {}
 
         scidata: dict = self.meta['@graph']['scidata']
         system: dict = scidata['system']
         curr_facets: list = system['facets']
-
-        for item in facets:
-            cat_index = {}
-            item, category, count, cat_index = self.__iterate_function(
-                item, 1, cnt_index, cat_index)
-            cnt_index[category] = count
+        uidindex = []
+        for listentry in facets:
+            item, uidindex = self.__iterate_function(listentry, uidindex)
             curr_facets.append(item)
 
         system['facets'] = curr_facets
@@ -473,7 +463,6 @@ class SciData:
 
     def attribute(self, attributes: list) -> list:
         """Add one or more attributes"""
-        cnt_index = {}
 
         scidata: dict = self.meta['@graph']['scidata']
         dataset: dict = scidata['dataset']
@@ -481,13 +470,10 @@ class SciData:
             curr_attributes: list = dataset['attribute']
         else:
             curr_attributes = []
+        uidindex = []
 
-        for item in attributes:
-            cat_index = {}
-            cnt_index = {'attribute': len(curr_attributes)}
-            item, category, count, cat_index = self.__iterate_function(
-                item, 1, cnt_index, cat_index)
-            cnt_index[category] = count
+        for listentry in attributes:
+            item, uidindex = self.__iterate_function(listentry, uidindex)
             curr_attributes.append(item)
 
         dataset['attribute'] = curr_attributes
@@ -497,7 +483,6 @@ class SciData:
 
     def datapoint(self, points: list) -> list:
         """Add one or more datapoints"""
-        cnt_index = {}
 
         scidata: dict = self.meta['@graph']['scidata']
         dataset: dict = scidata['dataset']
@@ -505,13 +490,10 @@ class SciData:
             curr_points: list = dataset['datapoint']
         else:
             curr_points = []
+        uidindex = []
 
-        for item in points:
-            cat_index = {}
-            cnt_index = {'datapoint': len(curr_points)}
-            item, category, count, cat_index = self.__iterate_function(
-                item, 1, cnt_index, cat_index)
-            cnt_index[category] = count
+        for listentry in points:
+            item, uidindex = self.__iterate_function(listentry, uidindex)
             curr_points.append(item)
 
         dataset['datapoint'] = curr_points
@@ -521,7 +503,6 @@ class SciData:
 
     def dataseries(self, series: list) -> list:
         """Add one or more datapoints"""
-        cnt_index = {}
 
         scidata: dict = self.meta['@graph']['scidata']
         dataset: dict = scidata['dataset']
@@ -529,84 +510,16 @@ class SciData:
             curr_series: list = dataset['dataseries']
         else:
             curr_series = []
+        uidindex = []
 
-        for item in series:
-            cat_index = {}
-            cnt_index = {'dataseries': len(curr_series)}
-            item, category, count, cat_index = self.__iterate_function(
-                item, 1, cnt_index, cat_index)
-            cnt_index[category] = count
+        for listentry in series:
+            item, uidindex = self.__iterate_function(listentry, uidindex)
             curr_series.append(item)
 
         dataset['dataseries'] = curr_series
         scidata['dataset'] = dataset
         self.meta['@graph']['scidata'] = scidata
         return curr_series
-
-    # def datagroup(self, groups: list) -> list:
-    #     """Add one or more datagroups"""
-    #     cnt_index = {}
-    #
-    #     def iteratedatagroup(it, level):
-    #         """ iteratedatagroup function """
-    #         if isinstance(it, str):
-    #             self.__addid(it)
-    #             return it
-    #         elif '@id' in it:
-    #             category = it['@id']
-    #         else:
-    #             category = 'undefined'
-    #         if category in cnt_index:
-    #             cnt_index[category] += 1
-    #         else:
-    #             cnt_index[category] = 1
-    #         cat_index.update({level: category})
-    #         uid = ''
-    #         for cat in cat_index.values():
-    #             uid += cat + '/' + str(cnt_index[cat]) + '/'
-    #         temp: dict = {'@id': uid, '@type': 'sdo:' + category}
-    #         if 'source' in it:
-    #             temp.update({'source': it['source']})
-    #
-    #         dset = self.meta['@graph']['scidata']['dataset']
-    #         pointlist = []
-    #         if 'datapoints' in it:
-    #             for x in it['datapoints']:
-    #                 if 'datapoint' in dset:
-    #                     cnt = len(dset['datapoint'])
-    #                 else:
-    #                     cnt = 0
-    #                 pointlist.append('datapoint/' + str(cnt) + '/')
-    #                 self.datapoint([x])
-    #             temp['datapoints'] = pointlist
-    #         if 'attribute' in it:
-    #             for x in it['attribute']:
-    #                 if 'attribute' in dset:
-    #                     cnt = len(dset['attribute'])
-    #                 else:
-    #                     cnt = 0
-    #                 pointlist.append('attribute/' + str(cnt) + '/')
-    #                 self.attribute([x])
-    #             temp['attribute'] = pointlist
-    #
-    #         return temp
-    #
-    #     scidata: dict = self.meta['@graph']['scidata']
-    #     dataset: dict = scidata['dataset']
-    #     if 'datagroup' in dataset.keys():
-    #         curr_groups: list = dataset['datagroup']
-    #     else:
-    #         curr_groups = []
-    #
-    #     for item in groups:
-    #         cat_index = {}
-    #         item = iteratedatagroup(item, 0)
-    #         curr_groups.append(item)
-    #
-    #     dataset['datagroup'] = curr_groups
-    #     scidata['dataset'] = dataset
-    #     self.meta['@graph']['scidata'] = scidata
-    #     return curr_groups
 
     def sources(self, sources: list, replace=False) -> dict:
         """
@@ -723,28 +636,12 @@ class SciData:
         self.meta["@context"] = c + [n, b]
         return self.meta["@context"]
 
-    def __iterate_function(self, it, level, cnt_index, cat_index):
-        """
-        Recursive function to iteratively update @id, @type, and categories
-        for a sub-section
+    def __iterate_function(self, it, uidindex, uid=False):
 
-        :param it: string or list of objects to iterate over
-        :param level: current level of sub-section
-        :param cnt_index: dict to keep the count of a repeated category
-        :param cat_index: dict to keep the category level
-        :return: Tuple of [
-                updated object in the iterated listcategory,
-                category of object,
-                count of the given repeated category,
-                update cat_index
-            ]
-        """
-        new_cat_index = cat_index.copy()
-
-        # If we simply have string, return, end recursion
         if isinstance(it, str):
             self.__addid(it)
-            return it, 1, cnt_index, cat_index
+            return it, uidindex
+        prev_uid = uid
 
         # Set the category
         if '@id' in it:
@@ -754,62 +651,53 @@ class SciData:
         else:
             category = 'undefined'
 
-        # Increase count if already encountered category; initialize otherwise
-        if category in cnt_index:
-            cnt_index[category] += 1
+        if prev_uid:
+            uid = prev_uid + category + '/1/'
         else:
-            cnt_index[category] = 1
+            uid = category + '/1/'
 
-        # Update state holding level of nesting and associated category
-        new_cat_index.update({level: category})
+        def enumuid(uid):
+            uidsplit = uid.rsplit('/', 2)
+            uid = uidsplit[0] + '/' + str(int(uidsplit[1]) + 1) + '/'
+            return uid
 
-        # Set the @id and @type based on the category and count
-        uid = ''
-        for cat in list(new_cat_index.values()):
-            uid += cat + '/' + str(cnt_index[cat]) + '/'
+        while uid in uidindex:
+            uid = enumuid(uid)
+        uidindex.append(uid)
 
-        # Loop over non-id or non-type entries to recursively process
-        # sub-elements of the list of objects
         temp: dict = {'@id': uid, '@type': 'sdo:' + category}
+
         for key, value in it.items():
-
-            # Already constructed the @id, so iterate only on non-@id entries
             if key != '@id':
-                count = cnt_index[category]
 
-                # For list, recursively process elements in sub-list
                 if isinstance(value, list):
-                    level += 1
-                    for i, y in enumerate(value):
-                        if type(y) is str:
-                            pass
-                        else:
-                            value[i], category, count, new_cat_index = \
-                                self.__iterate_function(
-                                    y, level, cnt_index, new_cat_index)
+                    listuid = uid
+                    for i, listentry in enumerate(value):
+                        value[i], uidindex = self.__iterate_function(
+                            listentry, uidindex, listuid)
                     temp[key] = value
-                    level -= 1
 
-                # For list, recusively process key-values in sub-dict
                 elif isinstance(value, dict):
-                    level += 1
-                    temp[key], category, count, new_cat_index = \
-                        self.__iterate_function(
-                            value, level, cnt_index, new_cat_index)
-                    level -= 1
+                    temp[key], uidindex = self.__iterate_function(
+                        value, uidindex, uid)
 
-                # Simply add the value to list of objects to return
                 else:
                     temp[key] = value
                     self.__addid(value)
 
-        # Remove the last added "leaf" level to trim the @id value correctly
-        new_cat_index.pop(level)
-        cnt_index[category] = 0
-        return temp, category, count, new_cat_index
+        return temp, uidindex
+
 
     def scilinker(self, sci_links):
-        """Creates internal links between dataset(s), aspect(s) and facet(s)"""
+        """Creates internal links between dataset(s), aspect(s) and facet(s)
+
+        ie.
+        sci_links = {}
+        sci_links.update({'(compounds;qsar_predicted_properties;)(\\d{1,})(\\/data)': {
+            'model': 'compounds;qsar_predicted_properties;$!@%/model',
+            'compound': 'compounds/compound'
+        """
+
         inputsets = [
             self.meta['@graph']['scidata'].get('dataset', {}).get('datapoint'),
             self.meta['@graph']['scidata'].get('methodology', {}).get(
@@ -875,7 +763,13 @@ class SciData:
                                 scilinkerloop(bin_value, sci_links, sci_bin)
 
     def datagroup(self, sci_groups):
-        """Groups datapoints based on shared internal links"""
+        """Groups datapoints based on shared internal links
+        that are defined in sci_groups
+
+        ie.
+        sci_groups = {}
+        sci_groups.update({"crystal": "crystal/$!@%/"})
+        """
 
         scidata: dict = self.meta['@graph']['scidata']
         dataset: dict = scidata['dataset']
@@ -890,7 +784,6 @@ class SciData:
                     group_datapoints = []
                     groupvr = groupv.replace('$!@%', str(groupcount))
                     for sci_bin in inp:
-                        match = False
                         y = sci_bin.get(groupk, False)
                         if y:
                             if sci_bin[groupk] == groupvr:
@@ -943,13 +836,15 @@ class SciData:
         Generates Scidata JSON-LD File
         """
         self.__addtoc()
+
         today = datetime.today()
         self.meta['generatedAt'] = today.strftime("%m-%d-%y %H:%M:%S")
 
         # clean top level
         for key in list(self.meta['@graph']):
             if not self.meta['@graph'][key]:
-                del self.meta['@graph'][key]
+                if key != 'toc':
+                    del self.meta['@graph'][key]
         for key in list(self.meta['@graph']['scidata']):
             if not self.meta['@graph']['scidata'][key]:
                 del self.meta['@graph']['scidata'][key]
@@ -958,5 +853,23 @@ class SciData:
             for key in list(self.meta['@graph']['scidata'][sect]):
                 if not self.meta['@graph']['scidata'][sect][key]:
                     del self.meta['@graph']['scidata'][sect][key]
+        if not self.meta['@graph']['scidata'].get(
+                'methodology',
+                {}).get(
+                'aspects',
+                False):
+            del self.meta['@graph']['scidata']['methodology']
+        if not self.meta['@graph']['scidata'].get(
+                'system',
+                {}).get(
+                'facets',
+                False):
+            del self.meta['@graph']['scidata']['system']
+        if not self.meta['@graph']['scidata'].get(
+                'dataset', {}).get('datapoint', False):
+            if not self.meta['@graph']['scidata'].get(
+                    'dataset', {}).get('dataseries', False):
+                del self.meta['@graph']['scidata']['dataset']
+        self.__addtoc()
 
         return self.meta

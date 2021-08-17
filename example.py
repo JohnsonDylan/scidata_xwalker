@@ -148,14 +148,26 @@ nspaceslist = [
      'homepage': 'https://stuchalk.github.io/scidata/'}]
 
 
-"""Define group overrides to modify organization Generate SciData JSON-LD
-before running scicleanup to see # key and value to assist in writing
-group_overrides term 1 = < regex pattern to find in value # key > term 2 = <
-regex pattern to find in value of # for match > { term 1 : term 2 } If term
-1 depends on enumeration use parentheses to create regex groups. Group 2
-should be the enumerated value ie. (\\d{1,}) If term 2 match depends on the
-enumeration, use '$!@%' in the position of enumeration
- ## indicates group_link before override"""
+"""group_overrides are called by group_link_override to redefine # 
+value which is used to reorganize native data structure
+
+{ term 1 : term 2 }
+term 1 = < regex pattern to find in value # key >
+term 2 = < replacement value >
+
+If term 1 depends on enumeration use parentheses to create regex groups.
+Regex group 2 should be the enumerated value ie. (\\d{1,})
+
+If term 2 match depends on the enumeration,
+use '$!@%' in the position of enumeration
+
+Generate SciData JSON-LD before running scicleanup to see # key and value
+to assist in writing group_overrides
+
+# indicates group link after override or unchanged value
+## indicates group_link before override
+"""
+
 group_overrides = {}
 group_overrides.update({
     '(compounds;qsar_predicted_properties;)(\\d{1,})(\\/exptdata)':
@@ -164,18 +176,26 @@ group_overrides.update({
     '(compounds;qsar_predicted_properties;)(\\d{1,})(\\/suppdata)':
     'compounds;qsar_predicted_properties;$!@%/data'})
 
-"""Define sci_links to create internal links between sections 
-Generate
-SciData JSON-LD before running scicleanup to see # key and value to assist
-in writing sci_links 
+
+"""sci_links are called by scilinker to create internal links between sections 
+
+Generate SciData JSON-LD before running scicleanup to see # key and value 
+to assist in writing sci_links 
+    
+{ term 1 : { term 2 : term 3 } }
 term 1 = regex pattern to find in value # key 
 term 2 = name of key to be added to identify relationship 
 term 3 = regex pattern to find in value of # for match 
-{ term 1 : { term 2 : term 3 } }
+
 If term 1 depends on enumeration use parentheses to create regex groups.
-Group 2 should be the enumerated value ie. (\\d{1,}) If term 3 match depends
-on the enumeration, use '$!@%' in the position of enumeration 
-Multiple key/value pairs can be included in terms 2 and 3 if needed """
+Group 2 of term 1 should be the enumerated value ie. (\\d{1,}) 
+
+If term 3 match depends on the enumeration, 
+use '$!@%' in the position of enumeration 
+
+Multiple key/value pairs can be included as values of term 1 
+"""
+
 sci_links = {}
 sci_links.update({'(compounds;qsar_predicted_properties;)(\\d{1,})(\\/data)': {
     'model': 'compounds;qsar_predicted_properties;$!@%/model',
@@ -183,7 +203,13 @@ sci_links.update({'(compounds;qsar_predicted_properties;)(\\d{1,})(\\/data)': {
 }})
 
 
-"""Define sci_groups"""
+"""sci_groups are called by datagroup definition on create a datagroup 
+from all datapoints matching criteria
+
+sci_groups = { term 1 : term 2}
+term 1 = internal link key name within a datapoint
+term 2 = internal link value where $!@% is use for enumeration
+"""
 sci_groups = {}
 sci_groups.update({"crystal": "crystal/$!@%/"})
 

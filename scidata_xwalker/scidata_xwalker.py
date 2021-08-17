@@ -2,9 +2,6 @@ from itertools import chain, starmap
 import ast
 import re
 
-dev = False
-
-
 def crosswalker(sci_dir, sci_input, crosswalks, cw_field, cw_table):
     """Match directory/table name and field to a crosswalk entry.
     If match exists, modify value to a string representation of a
@@ -95,13 +92,13 @@ def cleanup_flattened(sci_input):
                     'scidata_group': sci_group})
             if valx['sdsection'] == 'dataset':
                 val.update(
-                    {'scidata_group_link': k.rsplit(';', 1)[0] + '/'})
+                    {'#': k.rsplit(';', 1)[0] + '/'})
                 val.update(
-                    {'scidata_group_link_original': k.rsplit(';', 1)[0] + '/'})
+                    {'##': k.rsplit(';', 1)[0] + '/'})
             else:
-                val.update({'scidata_group_link': k.rsplit(';', 1)
+                val.update({'#': k.rsplit(';', 1)
                            [0] + '/' + str(valx['sdsubsection'])})
-                val.update({'scidata_group_link_original': k.rsplit(
+                val.update({'##': k.rsplit(
                     ';', 1)[0] + '/' + str(valx['sdsubsection'])})
             val.update(valx)
             output.update({k: val})
@@ -109,26 +106,50 @@ def cleanup_flattened(sci_input):
 
 
 def group_link_override(sci_input, group_overrides):
-    """redefines the scidata_group_link value based on the rules defined in
-    group_overrides """
+    """redefines the # value based on the rules defined in
+    group_overrides
+
+    ie.
+    group_overrides = {}
+    group_overrides.update(
+        {"(cif;Chemical Formula;)(\d{1,})(/compound)":
+        "cif;Chemical;$!@%/compound"})
+
+    { term 1 : term 2 }
+    term 1 = < regex pattern to find in value # key >
+    term 2 = < replacement value >
+
+    If term 1 depends on enumeration use parentheses to create regex groups.
+    Regex group 2 should be the enumerated value ie. (\\d{1,})
+
+    If term 2 match depends on the enumeration,
+    use '$!@%' in the position of enumeration
+
+    Generate SciData JSON-LD before running scicleanup to see # key and value
+    to assist in writing group_overrides
+
+    # indicates group link after override or unchanged value
+    ## indicates group_link before override
+    """
+
     for k, v in sci_input.items():
         for pattern, replacement in group_overrides.items():
-            if re.search(pattern, v['scidata_group_link']):
+            if re.search(pattern, v['#']):
                 try:
                     replace = replacement.replace(
                         '$!@%', re.match(pattern,
-                                         v['scidata_group_link']).group(2))
-                    v['scidata_group_link'] = replace
+                                         v['#']).group(2))
+                    v['#'] = replace
                 except Exception:
-                    v['scidata_group_link'] = replacement
-            if re.search(pattern, v['scidata_group_link']):
+                    v['#'] = replacement
+            if re.search(pattern, v['#']):
                 try:
                     replace = replacement.replace(
                         '$!@%', re.match(pattern,
-                                         v['scidata_group_link']).group(2))
-                    v['scidata_group_link'] = replace
+                                         v['#']).group(2))
+                    v['#'] = replace
                 except Exception:
-                    v['scidata_group_link'] = replacement
+                    v['#'] = replacement
 
 
 def get_semantics(sci_input, onttermslist, nspaceslist):
@@ -156,17 +177,17 @@ def binner(sci_input):
 
 
 def bin_grouper(sci_input):
-    """Groups bins based on the 'scidata_group_link' key"""
+    """Groups bins based on the '#' key"""
     bins_grouped = {}
     for a, b in sci_input.items():
         bin_groups_set = set()
         for c in b:
-            bin_groups_set.add(c['scidata_group_link'])
+            bin_groups_set.add(c['#'])
         subset_list = []
         for d in bin_groups_set:
             sdsubsection_group = {}
             for c in b:
-                if c['scidata_group_link'] == d:
+                if c['#'] == d:
                     if c['sdsection'] == 'dataset':
                         if sdsubsection_group.get(c['scidata_key']):
                             if isinstance(
@@ -206,23 +227,15 @@ def remove_extra_metadata(sci_input):
         for k, v in entry.items():
             if isinstance(v, dict):
                 entry[k] = v['scidata_value']
-                reference.update({'#': v['scidata_group_link']})
-                reference.update({'##': v['scidata_group_link_original']})
-
-                if dev:
-                    reference.update({k + '#': v['scidata_group_link']})
-                    reference.update({k + '##': v['scidata_dir']})
+                reference.update({'#': v['#']})
+                reference.update({'##': v['##']})
             if isinstance(v, list):
                 entry[k] = []
                 for vlist in v:
                     entry[k].append(vlist['scidata_value'])
-                    reference.update({'#': vlist['scidata_group_link']})
+                    reference.update({'#': vlist['#']})
                     reference.update(
-                        {'##': vlist['scidata_group_link_original']})
-                    if dev:
-                        reference.update(
-                            {k + '#': vlist['scidata_group_link']})
-                        reference.update({k + '##': vlist['scidata_dir']})
+                        {'##': vlist['##']})
                 entry[k] = set(entry[k])
                 entry[k] = list(entry[k])
                 if len(entry[k]) == 1:
@@ -247,8 +260,6 @@ def datasetmodder(sci_input):
                         value.update({"@id": "value",
                                       "@type": "sdo:value",
                                       v['scidata_key']: v['scidata_value'],
-                                      # '#': v['scidata_group_link'].split('/')[0],
-                                      # '##': v['scidata_group_link_original'].split('/')[0]
                                       })
             datum = ({
                 "@id": "datum",
@@ -260,8 +271,8 @@ def datasetmodder(sci_input):
             "@id": "datapoint",
             "@type": "sdo:datapoint",
             "data": datumset,
-            '#': v['scidata_group_link'].split('/')[0],
-            '##': v['scidata_group_link_original'].split('/')[0]
+            '#': v['#'].split('/')[0],
+            '##': v['##'].split('/')[0]
         }
         datasetmod.append(dataset)
     return datasetmod
